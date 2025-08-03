@@ -2,31 +2,34 @@ import os
 import subprocess
 from glob import glob
 
-# Path ke InterProScan dan folder input/output
+# === Konfigurasi ===
 interproscan_path = "/mnt/c/Users/HP/interproscan-5.73-104.0/interproscan.sh"
 input_folder = "/mnt/c/Pisang/fixed"
-log_folder = "/mnt/c/Pisang/fixed/logs"
+log_folder = os.path.join(input_folder, "logs")
 
-# Pastikan folder log ada
+# Buat folder logs kalau belum ada
 os.makedirs(log_folder, exist_ok=True)
 
-# Cari semua file .fasta atau .fa di folder
+# Cari semua file .fasta di folder input
 fasta_files = glob(os.path.join(input_folder, "*.fasta"))
 
-print(f"🧬 Ditemukan {len(fasta_files)} file FASTA.")
+print(f"[INFO] Ditemukan {len(fasta_files)} file FASTA untuk dianalisis.")
 
+# Loop tiap file dan jalankan InterProScan
 for fasta_path in fasta_files:
-    # Ambil nama dasar file tanpa ekstensi
     basename = os.path.basename(fasta_path)
     name_only = os.path.splitext(basename)[0]
 
-    # Buat path output dan log
     output_tsv = os.path.join(input_folder, f"{name_only}_interpro.tsv")
     log_path = os.path.join(log_folder, f"{name_only}_interpro.log")
 
-    print(f"🚀 Menjalankan InterProScan untuk: {basename}")
+    # Lewati kalau output sudah ada
+    if os.path.exists(output_tsv):
+        print(f"[SKIP] Lewati {basename} (sudah dianalisis)")
+        continue
 
-    # Bangun perintah InterProScan
+    print(f"[RUN ] Menjalankan InterProScan untuk: {basename}")
+
     command = [
         interproscan_path,
         "-i", fasta_path,
@@ -37,13 +40,12 @@ for fasta_path in fasta_files:
         "--cpu", "1"
     ]
 
-    # Jalankan dan simpan log output
     with open(log_path, "w") as log_file:
         result = subprocess.run(command, stdout=log_file, stderr=subprocess.STDOUT)
 
     if result.returncode == 0:
-        print(f"✅ Selesai: {name_only}_interpro.tsv")
+        print(f"[DONE] Selesai: {name_only}_interpro.tsv")
     else:
-        print(f"❌ Gagal: {name_only} — cek log: {log_path}")
+        print(f"[FAIL] Gagal: {name_only} — lihat log: {log_path}")
 
-print("🎉 Semua file selesai diproses.")
+print("[INFO] Semua file selesai diproses.")
